@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Tiny Ticket Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="На доску Tiny Tracker">
+          <span class="brand-mark">T</span>
+          <span>Tiny Tracker</span>
+        </a>
+        <nav class="topbar-nav" aria-label="Основная навигация">
+          <a href="/">Доска</a>
+          <a href="/notifications" class="notification-link">Уведомления <span id="notification-count" class="notification-count" hidden>0</span></a>
+          <a href="/docs" target="_blank" rel="noreferrer">API</a>
+        </nav>
+        <a class="button button-primary topbar-create" href="/tickets/new">+ Создать тикет</a>
+      </header>
+      <main class="main-content">
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="footer">Учебный трекер · FastAPI · SQLite</footer>
+    </div>
+    {% block scripts %}{% endblock %}
+    <script src="{{ url_for('static', path='/agent-ui.js') }}" defer></script>
+  </body>
+</html>

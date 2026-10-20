@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: tiny-ticket-tracker
+Version: 0.1.0
+Summary: A small Jira-like ticket tracker for practicing AI-enabled delivery workflows.
+Requires-Python: >=3.11
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: uvicorn[standard]<1.0,>=0.30
+Requires-Dist: sqlalchemy<3.0,>=2.0
+Requires-Dist: jinja2<4.0,>=3.1
+Requires-Dist: python-multipart<1.0,>=0.0.9

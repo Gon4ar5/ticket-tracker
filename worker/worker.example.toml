@@ -1,0 +1,20 @@
+[worker]
+tracker_url = "http://127.0.0.1:8000"
+worker_id = "local-mac"
+token = "local-dev-only-change-me"
+poll_seconds = 3
+timeout_seconds = 21600
+worktree_root = "~/.local/share/tiny-ticket-tracker/worktrees"
+
+# Only these configured checkouts can be selected from the dashboard.
+# Replace paths with the locations on this computer. Entries outside a Git checkout
+# are skipped by the worker and will not appear as launch targets.
+[projects.vacancy-search]
+name = "vacancy-search"
+path = "~/projects/vacancy-search"
+base_branch = "main"
+
+[projects.ticket-tracker]
+name = "ticket-tracker"
+path = "~/projects/ticket-tracker"
+base_branch = "main"

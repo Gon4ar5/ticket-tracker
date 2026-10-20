@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Доска · Tiny Tracker{% endblock %}
+
+{% block content %}
+  <section class="page-heading">
+    <div class="heading-copy">
+      <p class="eyebrow"><span class="eyebrow-mark"></span>РАБОЧЕЕ ПРОСТРАНСТВО</p>
+      <h1>Доска задач</h1>
+      <p class="muted">Путь задачи от идеи до готового изменения.</p>
+    </div>
+    <div class="board-summary">
+      <span class="summary-icon">▤</span>
+      <span><strong>{{ ticket_count }}</strong><small>всего тикетов</small></span>
+    </div>
+  </section>
+
+  <div class="board-toolbar">
+    <span class="board-label">СПРИНТ · ОСНОВНОЙ ПОТОК</span>
+    <span class="drag-hint"><span aria-hidden="true">⠿</span> Перетаскивайте карточки между колонками</span>
+  </div>
+
+  <section class="board" aria-label="Доска тикетов" id="ticket-board">
+    {% for column in columns %}
+      <section class="board-column" data-column="{{ column }}">
+        <header class="column-heading">
+          <div class="column-title">
+            <span class="status-dot status-{{ column|lower|replace(' ', '-') }}"></span>
+            <h2>{{ column }}</h2>
+          </div>
+          <span class="count-pill" data-count>{{ grouped[column]|length }}</span>
+        </header>
+
+        <div class="ticket-stack" data-status="{{ column }}" role="list" aria-label="Тикеты: {{ column }}">
+          {% for ticket in grouped[column] %}
+            <article class="ticket-card" data-ticket-card data-ticket-id="{{ ticket.id }}" role="listitem">
+              <div class="ticket-meta">
+                <span class="ticket-key-group"><span class="ticket-grip" draggable="true" aria-label="Перетащить {{ ticket.key }}" title="Перетащить тикет">⠿</span><a class="ticket-key" href="/tickets/{{ ticket.id }}">{{ ticket.key }}</a></span>
+                <span class="priority priority-{{ ticket.priority|lower }}">{{ ticket.priority }}</span>
+              </div>
+              <h3><a href="/tickets/{{ ticket.id }}">{{ ticket.title }}</a></h3>
+              {% if ticket.description %}
+                <p class="ticket-excerpt">{{ ticket.description|truncate(125) }}</p>
+              {% endif %}
+              <form class="quick-status" action="/tickets/{{ ticket.id }}/status" method="post">
+                <label class="visually-hidden" for="status-{{ ticket.id }}">Изменить статус</label>
+                <select id="status-{{ ticket.id }}" name="status" aria-label="Статус тикета {{ ticket.key }}">
+                  {% for option in columns %}
+                    <option value="{{ option }}" {% if option == ticket.status %}selected{% endif %}>{{ option }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="icon-button" title="Сохранить статус">↗</button>
+              </form>
+            </article>
+          {% else %}
+            <div class="column-empty" data-empty>Перетащите тикет сюда</div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+  </section>
+  <div class="board-toast" id="board-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', path='/board.js') }}" defer></script>{% endblock %}

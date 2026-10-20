@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Уведомления · Tiny Tracker{% endblock %}
+
+{% block content %}
+  <div class="page-heading">
+    <div><p class="eyebrow">CODEX RUNNER</p><h1>Уведомления</h1><p class="muted">Сохранённые результаты запусков и задачи, требующие внимания.</p></div>
+    <a class="button button-secondary" href="/">← К доске</a>
+  </div>
+  <section class="agent-notifications notification-page-list">
+    {% for notification in notifications %}
+      <article class="agent-notification {% if notification.read_at %}is-read{% endif %}" data-notification-id="{{ notification.id }}">
+        <div>
+          <strong>{{ notification.title }}</strong>
+          <p>{{ notification.message }}</p>
+          <small>{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+        </div>
+        <div class="notification-actions">
+          <a class="button button-secondary button-small" href="/tickets/{{ notification.ticket_id }}#run-{{ notification.run_id }}">Открыть запуск</a>
+          {% if not notification.read_at %}<button type="button" class="button button-secondary button-small" data-mark-read="{{ notification.id }}">Прочитано</button>{% endif %}
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state"><strong>Уведомлений пока нет</strong><p class="muted">Здесь появятся итоги и ошибки Codex-запусков.</p></div>
+    {% endfor %}
+  </section>
+{% endblock %}

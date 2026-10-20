@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% set editing = ticket is not none %}
+{% block title %}{% if editing %}Редактировать {{ ticket.key }}{% else %}Новый тикет{% endif %} · Tiny Tracker{% endblock %}
+
+{% block content %}
+  <div class="form-page">
+    <a class="back-link" href="{% if editing %}/tickets/{{ ticket.id }}{% else %}/{% endif %}">← Назад</a>
+    <section class="form-card">
+      <p class="eyebrow">{% if editing %}{{ ticket.key }}{% else %}НОВАЯ ЗАДАЧА{% endif %}</p>
+      <h1>{% if editing %}Редактировать тикет{% else %}Создать тикет{% endif %}</h1>
+      <form action="{% if editing %}/tickets/{{ ticket.id }}/edit{% else %}/tickets{% endif %}" method="post" class="ticket-form">
+        <label for="title">Название <span class="required-mark">*</span></label>
+        <input id="title" name="title" required minlength="3" maxlength="160" value="{{ ticket.title if editing else '' }}" placeholder="Например, добавить фильтр по статусу">
+
+        <label for="description">Описание</label>
+        <textarea id="description" name="description" rows="4" placeholder="Какую проблему решаем?">{{ ticket.description if editing else '' }}</textarea>
+
+        <label for="acceptance_criteria">Критерии приёмки</label>
+        <textarea id="acceptance_criteria" name="acceptance_criteria" rows="4" placeholder="По каким условиям поймём, что задача готова?">{{ ticket.acceptance_criteria if editing else '' }}</textarea>
+
+        <div class="form-grid">
+          {% if editing %}
+            <div class="field-group">
+              <label for="status">Статус</label>
+              <select id="status" name="status">
+                {% for option in statuses %}
+                  <option value="{{ option }}" {% if option == ticket.status %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+          <div class="field-group">
+            <label for="priority">Приоритет</label>
+            <select id="priority" name="priority">
+              {% for option in priorities %}
+                <option value="{{ option }}" {% if editing and option == ticket.priority %}selected{% elif not editing and option == 'Medium' %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="section-divider"><span>Связи разработки</span></div>
+        <label for="spec_ref">Спецификация: путь или URL</label>
+        <input id="spec_ref" name="spec_ref" maxlength="500" value="{{ ticket.spec_ref if editing else '' }}" placeholder="docs/sdd/my-feature.md">
+
+        <div class="form-grid">
+          <div class="field-group">
+            <label for="branch_name">Git-ветка</label>
+            <input id="branch_name" name="branch_name" maxlength="200" value="{{ ticket.branch_name if editing else '' }}" placeholder="feature/ticket-board">
+          </div>
+          <div class="field-group">
+            <label for="pull_request_url">Pull request URL</label>
+            <input id="pull_request_url" name="pull_request_url" type="url" maxlength="500" value="{{ ticket.pull_request_url if editing else '' }}" placeholder="https://github.com/.../pull/1">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a class="button button-secondary" href="{% if editing %}/tickets/{{ ticket.id }}{% else %}/{% endif %}">Отмена</a>
+          <button class="button button-primary" type="submit">{% if editing %}Сохранить изменения{% else %}Создать тикет{% endif %}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+{% endblock %}

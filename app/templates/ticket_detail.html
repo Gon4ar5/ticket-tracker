@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ticket.key }} · Tiny Tracker{% endblock %}
+
+{% block content %}
+  <div class="detail-page">
+    <a class="back-link" href="/">← К доске</a>
+    <article class="detail-card">
+      <div class="detail-topline">
+        <a class="ticket-key" href="/">{{ ticket.key }}</a>
+        <span class="priority priority-{{ ticket.priority|lower }}">{{ ticket.priority }}</span>
+      </div>
+      <div class="detail-heading">
+        <h1>{{ ticket.title }}</h1>
+        <a class="button button-secondary" href="/tickets/{{ ticket.id }}/edit">Редактировать</a>
+      </div>
+
+      <form class="detail-status" action="/tickets/{{ ticket.id }}/status" method="post">
+        <label for="status">Статус</label>
+        <select id="status" name="status">
+          {% for option in statuses %}
+            <option value="{{ option }}" {% if option == ticket.status %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+        <button class="button button-primary button-small" type="submit">Обновить</button>
+      </form>
+
+      <section class="detail-section">
+        <h2>Описание</h2>
+        {% if ticket.description %}<p class="preserve-lines">{{ ticket.description }}</p>{% else %}<p class="muted">Описание не добавлено.</p>{% endif %}
+      </section>
+
+      {% if error %}<div class="agent-alert agent-alert-error" role="alert">{{ error }}</div>{% endif %}
+
+      <section class="detail-section agent-launch-section">
+        <div class="agent-section-heading">
+          <div><h2>Запуск Codex</h2><p class="muted">Отдельная ветка и worktree. PR, merge и deploy не выполняются.</p></div>
+          <button class="button button-secondary button-small" type="button" data-enable-notifications>Включить уведомления браузера</button>
+        </div>
+        {% if projects %}
+          <form action="/tickets/{{ ticket.id }}/agent-runs" method="post" class="agent-launch-form" data-confirm-launch>
+            <label for="agent-project">Целевой проект</label>
+            <select name="project_id" id="agent-project" required>
+              <option value="">Выбери проект…</option>
+              {% for project in projects %}<option value="{{ project.id }}">{{ project.name }} ({{ project.base_branch }})</option>{% endfor %}
+            </select>
+            <button class="button button-primary" type="submit" {% if runs and runs[0].status in ['Queued', 'Running'] %}disabled{% endif %}>Взять в работу</button>
+          </form>
+        {% else %}
+          <p class="muted">Нет доступных проектов. Запусти host worker и проверь его allowlist.</p>
+        {% endif %}
+        <ul class="readiness-list">
+          <li class="{% if ticket.description.strip() %}ready{% endif %}">Описание</li>
+          <li class="{% if ticket.acceptance_criteria.strip() %}ready{% endif %}">Критерии приёмки</li>
+          <li class="{% if ticket.spec_ref.strip() %}ready{% endif %}">Утверждённая спецификация</li>
+        </ul>
+      </section>
+
+      <section class="detail-section" id="agent-notifications">
+        <h2>Уведомления</h2>
+        {% if notifications %}
+          <div class="agent-notifications">
+            {% for notification in notifications %}
+              <article class="agent-notification {% if notification.read_at %}is-read{% endif %}" data-notification-id="{{ notification.id }}">
+                <div><strong>{{ notification.title }}</strong><p>{{ notification.message }}</p><small>{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</small></div>
+                {% if not notification.read_at %}<button type="button" class="button button-secondary button-small" data-mark-read="{{ notification.id }}">Прочитано</button>{% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}<p class="muted">Пока уведомлений нет.</p>{% endif %}
+      </section>
+
+      <section class="detail-section" id="agent-runs">
+        <h2>История запусков</h2>
+        {% if runs %}
+          <div class="agent-runs">
+            {% for run in runs %}
+              <article class="agent-run" id="run-{{ run.id }}" data-agent-run="{{ run.id }}">
+                <div class="agent-run-heading"><div><strong>Запуск #{{ run.id }}</strong><span class="run-status run-status-{{ run.status|lower|replace(' ', '-') }}" data-run-status>{{ run.status }}</span></div><time>{{ run.created_at.strftime('%d.%m.%Y %H:%M') }}</time></div>
+                <p class="muted">Проект: {{ run.project_id }}{% if run.branch_name %} · Ветка: <code>{{ run.branch_name }}</code>{% endif %}</p>
+                <p data-run-progress>{{ run.progress or 'Ожидает worker' }}</p>
+                {% if run.error %}<div class="agent-alert agent-alert-error" data-run-error>{{ run.error }}</div>{% else %}<div data-run-error hidden></div>{% endif %}
+                {% if run.final_report %}<details open><summary>Итоговый отчёт</summary><p class="preserve-lines" data-run-report>{{ run.final_report }}</p></details>{% else %}<details data-run-report-details hidden><summary>Итоговый отчёт</summary><p class="preserve-lines" data-run-report></p></details>{% endif %}
+                {% if run.worktree_path %}<p>Worktree: <code>{{ run.worktree_path }}</code></p>{% endif %}
+                <details><summary>События</summary><ul class="run-events" data-run-events>{% for item in run_events[run.id] %}<li><time>{{ item.created_at.strftime('%H:%M:%S') }}</time> <strong>{{ item.event_type }}</strong> {{ item.message }}</li>{% endfor %}</ul></details>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}<p class="muted">Запусков ещё нет.</p>{% endif %}
+      </section>
+
+      <section class="detail-section">
+        <h2>Критерии приёмки</h2>
+        {% if ticket.acceptance_criteria %}<p class="preserve-lines">{{ ticket.acceptance_criteria }}</p>{% else %}<p class="muted">Критерии приёмки не добавлены.</p>{% endif %}
+      </section>
+
+      <section class="detail-section">
+        <h2>Связи разработки</h2>
+        <dl class="link-list">
+          <div><dt>Спецификация</dt><dd>{% if ticket.spec_ref %}<span class="code-value">{{ ticket.spec_ref }}</span>{% else %}<span class="muted">Не указана</span>{% endif %}</dd></div>
+          <div><dt>Git-ветка</dt><dd>{% if ticket.branch_name %}<code>{{ ticket.branch_name }}</code>{% else %}<span class="muted">Не указана</span>{% endif %}</dd></div>
+          <div><dt>Pull request</dt><dd>{% if ticket.pull_request_url %}<a href="{{ ticket.pull_request_url }}" target="_blank" rel="noreferrer">Открыть PR ↗</a>{% else %}<span class="muted">Не создан</span>{% endif %}</dd></div>
+        </dl>
+      </section>
+
+      <footer class="detail-footer">
+        <span>Создан: {{ ticket.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+        <span>Обновлён: {{ ticket.updated_at.strftime('%d.%m.%Y %H:%M') }}</span>
+      </footer>
+    </article>
+  </div>
+{% endblock %}

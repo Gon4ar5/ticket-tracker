@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+app/__init__.py
+app/database.py
+app/main.py
+app/models.py
+app/schemas.py
+app/routers/__init__.py
+app/routers/api.py
+app/routers/web.py
+tiny_ticket_tracker.egg-info/PKG-INFO
+tiny_ticket_tracker.egg-info/SOURCES.txt
+tiny_ticket_tracker.egg-info/dependency_links.txt
+tiny_ticket_tracker.egg-info/requires.txt
+tiny_ticket_tracker.egg-info/top_level.txt

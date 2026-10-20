@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      TICKET_DB_PATH: /app/data/tickets.db
+      TICKET_AGENT_TOKEN: ${TICKET_AGENT_TOKEN:-local-dev-only-change-me}
+    volumes:
+      - ticket_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  ticket_data:
