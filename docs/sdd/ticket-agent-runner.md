@@ -1,5 +1,9 @@
 # Запуск Codex по тикету
 
+> Этот вариант SDD описывает прежний неинтерактивный `codex exec` MVP. Он
+> заменён более новым workflow с вопросами в Codex Desktop, отдельным ревью и PR:
+> [`agent-ticket-to-pr-workflow.md`](agent-ticket-to-pr-workflow.md).
+
 **Статус:** уточнённый вариант на проверку готовности пользователем.
 
 ## Цель

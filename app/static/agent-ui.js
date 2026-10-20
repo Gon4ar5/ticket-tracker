@@ -71,6 +71,11 @@
         if (errorNode) { safeText(errorNode, run.error); errorNode.hidden = !run.error; }
         const report = card.querySelector("[data-run-report]");
         if (report) safeText(report, run.final_report);
+        const threadLink = card.querySelector("[data-run-thread-link]");
+        if (threadLink && run.thread_url) {
+          threadLink.href = run.thread_url;
+          threadLink.hidden = false;
+        }
         const details = card.querySelector("[data-run-report-details]");
         if (details) details.hidden = !run.final_report;
         const events = card.querySelector("[data-run-events]");

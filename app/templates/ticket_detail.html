@@ -34,7 +34,7 @@
 
       <section class="detail-section agent-launch-section">
         <div class="agent-section-heading">
-          <div><h2>Запуск Codex</h2><p class="muted">Отдельная ветка и worktree. PR, merge и deploy не выполняются.</p></div>
+          <div><h2>Запуск Codex</h2><p class="muted">Откроется новый чат Codex Desktop в отдельной ветке и worktree. Merge и deploy остаются за тобой.</p></div>
           <button class="button button-secondary button-small" type="button" data-enable-notifications>Включить уведомления браузера</button>
         </div>
         {% if projects %}
@@ -78,6 +78,7 @@
               <article class="agent-run" id="run-{{ run.id }}" data-agent-run="{{ run.id }}">
                 <div class="agent-run-heading"><div><strong>Запуск #{{ run.id }}</strong><span class="run-status run-status-{{ run.status|lower|replace(' ', '-') }}" data-run-status>{{ run.status }}</span></div><time>{{ run.created_at.strftime('%d.%m.%Y %H:%M') }}</time></div>
                 <p class="muted">Проект: {{ run.project_id }}{% if run.branch_name %} · Ветка: <code>{{ run.branch_name }}</code>{% endif %}</p>
+                <p><a class="button button-secondary button-small" data-run-thread-link href="{% if run.codex_thread_id %}codex://threads/{{ run.codex_thread_id }}{% else %}#{% endif %}" {% if not run.codex_thread_id %}hidden{% endif %}>Открыть чат в Codex Desktop ↗</a></p>
                 <p data-run-progress>{{ run.progress or 'Ожидает worker' }}</p>
                 {% if run.error %}<div class="agent-alert agent-alert-error" data-run-error>{{ run.error }}</div>{% else %}<div data-run-error hidden></div>{% endif %}
                 {% if run.final_report %}<details open><summary>Итоговый отчёт</summary><p class="preserve-lines" data-run-report>{{ run.final_report }}</p></details>{% else %}<details data-run-report-details hidden><summary>Итоговый отчёт</summary><p class="preserve-lines" data-run-report></p></details>{% endif %}
