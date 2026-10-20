@@ -43,6 +43,12 @@ class FinishInput(BaseModel):
     branch_name: str = ""
     worktree_path: str = ""
     thread_id: str = ""
+    pull_request_url: str = Field(default="", max_length=500)
+
+
+class NotificationInput(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=12000)
 
 
 def event(db: Session, run_id: int, kind: str, message: str) -> None:
@@ -119,6 +125,23 @@ def add_event(run_id: int, payload: EventInput, db: Db, _: WorkerAuth):
     return {"saved": True}
 
 
+@router.post("/runs/{run_id}/notifications")
+def add_run_notification(run_id: int, payload: NotificationInput, db: Db, _: WorkerAuth):
+    run = db.get(AgentRun, run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    if run.status not in ACTIVE:
+        raise HTTPException(409, "Run is already finished")
+    ticket = db.get(Ticket, run.ticket_id)
+    notification = Notification(
+        ticket_id=ticket.id, run_id=run.id,
+        title=payload.title, message=payload.message,
+    )
+    db.add(notification)
+    db.commit()
+    return {"created": True, "id": notification.id}
+
+
 @router.post("/runs/{run_id}/finish")
 def finish_run(run_id: int, payload: FinishInput, db: Db, _: WorkerAuth):
     run = db.get(AgentRun, run_id)
@@ -135,16 +158,23 @@ def finish_run(run_id: int, payload: FinishInput, db: Db, _: WorkerAuth):
     run.branch_name = payload.branch_name[:200]
     run.worktree_path = payload.worktree_path[:1000]
     run.codex_thread_id = payload.thread_id[:200] or run.codex_thread_id
+    run.pull_request_url = payload.pull_request_url[:500]
     run.finished_at = datetime.now(timezone.utc)
     run.active_key = None
+    if run.branch_name:
+        ticket.branch_name = run.branch_name
+    if run.pull_request_url:
+        ticket.pull_request_url = run.pull_request_url
     if payload.status == "Succeeded":
         ticket.status = "Review"
-        ticket.branch_name = run.branch_name
         title, message = f"Codex завершил {ticket.key}", run.final_report or "Запуск завершён успешно; ветка готова к ревью."
     elif payload.status == "Waiting for user":
         title, message = f"Требуется решение по {ticket.key}", run.error or run.progress or "Запуск ожидает решения пользователя."
     else:
-        title, message = f"Ошибка запуска {ticket.key}", run.error or "Codex завершился с ошибкой."
+        title = f"Ошибка запуска {ticket.key}"
+        message = run.error or "Codex завершился с ошибкой."
+        if run.pull_request_url:
+            message += f"\nDraft PR: {run.pull_request_url}"
     event(db, run_id, "status", f"Запуск завершён: {payload.status}")
     db.add(Notification(ticket_id=ticket.id, run_id=run.id, title=title, message=message[:12000]))
     db.commit()
@@ -160,7 +190,9 @@ def run_detail(run_id: int, db: Db):
     return {"id": run.id, "status": run.status, "progress": run.progress,
             "final_report": run.final_report, "error": run.error,
             "branch_name": run.branch_name, "worktree_path": run.worktree_path,
-            "thread_id": run.codex_thread_id, "project_id": run.project_id,
+            "thread_id": run.codex_thread_id,
+            "thread_url": f"codex://threads/{run.codex_thread_id}" if run.codex_thread_id else "",
+            "pull_request_url": run.pull_request_url, "project_id": run.project_id,
             "created_at": run.created_at.isoformat(),
             "started_at": run.started_at.isoformat() if run.started_at else None,
             "finished_at": run.finished_at.isoformat() if run.finished_at else None,
@@ -175,7 +207,10 @@ def ticket_runs(ticket_id: int, db: Db):
     return [{"id": r.id, "status": r.status, "project_id": r.project_id,
              "branch_name": r.branch_name, "created_at": r.created_at.isoformat(),
              "finished_at": r.finished_at.isoformat() if r.finished_at else None,
-             "progress": r.progress, "final_report": r.final_report, "error": r.error}
+             "progress": r.progress, "final_report": r.final_report, "error": r.error,
+             "thread_id": r.codex_thread_id,
+             "thread_url": f"codex://threads/{r.codex_thread_id}" if r.codex_thread_id else "",
+             "pull_request_url": r.pull_request_url}
             for r in runs]
 
 
