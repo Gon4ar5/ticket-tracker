@@ -147,9 +147,11 @@ def finish_run(run_id: int, payload: FinishInput, db: Db, _: WorkerAuth):
     run = db.get(AgentRun, run_id)
     if run is None:
         raise HTTPException(404, "Run not found")
+    if run.status == "Canceled" and payload.status == "Canceled":
+        return {"status": run.status}
     if run.status not in ACTIVE:
         raise HTTPException(409, "Run is already finished")
-    if payload.status not in ("Succeeded", "Failed", "Waiting for user"):
+    if payload.status not in ("Succeeded", "Failed", "Waiting for user", "Canceled"):
         raise HTTPException(422, "Unsupported final status")
     ticket = db.get(Ticket, run.ticket_id)
     run.status = payload.status
@@ -170,6 +172,8 @@ def finish_run(run_id: int, payload: FinishInput, db: Db, _: WorkerAuth):
         title, message = f"Codex завершил {ticket.key}", run.final_report or "Запуск завершён успешно; ветка готова к ревью."
     elif payload.status == "Waiting for user":
         title, message = f"Требуется решение по {ticket.key}", run.error or run.progress or "Запуск ожидает решения пользователя."
+    elif payload.status == "Canceled":
+        title, message = f"Запуск отменён: {ticket.key}", run.error or "Тикет изменён; запусти агента повторно."
     else:
         title = f"Ошибка запуска {ticket.key}"
         message = run.error or "Codex завершился с ошибкой."

@@ -212,6 +212,7 @@ body { background: var(--canvas); }
 .run-status-succeeded { background: #e8f6ec; color: #317349; }
 .run-status-failed { background: #fff0ed; color: #a74936; }
 .run-status-waiting-for-user { background: #fff5df; color: #896318; }
+.run-status-canceled { background: #f1eeee; color: #6f6464; }
 .agent-run p { margin: 9px 0; font-size: 12px; line-height: 1.55; }
 .agent-run details { margin-top: 12px; }
 .agent-run summary { color: #53635a; cursor: pointer; font-size: 12px; font-weight: 650; }

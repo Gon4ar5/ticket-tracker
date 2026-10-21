@@ -132,10 +132,18 @@ class CodexAppServer:
         return result.get("thread") or {}
 
     def wait_for_turn(self, thread_id: str, turn_id: str, timeout: int,
-                      poll_seconds: float = 3) -> dict:
+                      poll_seconds: float = 3, canceled: Callable[[], bool] | None = None) -> dict:
         """Wait for an app-server turn to finish, polling durable thread history."""
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
+            if canceled and canceled():
+                try:
+                    self.request("turn/interrupt", {"threadId": thread_id, "turnId": turn_id})
+                except Exception:
+                    # Some app-server versions may not support interrupt; the caller
+                    # still stops before review, push, or PR creation.
+                    pass
+                return {"status": "canceled", "text": ""}
             thread = self.thread_snapshot(thread_id)
             turns = thread.get("turns") or []
             target = next((turn for turn in turns if turn.get("id") == turn_id), None)

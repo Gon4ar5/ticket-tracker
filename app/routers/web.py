@@ -15,6 +15,21 @@ from app.models import AgentProject, AgentRun, AgentRunEvent, Notification, Tick
 from app.schemas import TicketPriority, TicketStatus
 
 router = APIRouter()
+
+
+def cancel_active_runs(db: Session, ticket: Ticket, reason: str) -> None:
+    """Release active runs when a user changes the task they were given."""
+    runs = db.scalars(select(AgentRun).where(
+        AgentRun.ticket_id == ticket.id,
+        AgentRun.status.in_(["Queued", "Running"]),
+    )).all()
+    now = datetime.now(timezone.utc)
+    for run in runs:
+        run.status = "Canceled"
+        run.active_key = None
+        run.finished_at = now
+        run.error = reason
+        db.add(AgentRunEvent(run_id=run.id, event_type="status", message=reason))
 templates = Jinja2Templates(directory="app/templates")
 DbSession = Annotated[Session, Depends(get_db)]
 STATUSES = [item.value for item in TicketStatus]
@@ -207,14 +222,23 @@ def update_ticket_form(
     pull_request_url: Annotated[str, Form(max_length=500)] = "",
 ):
     ticket = get_ticket_or_404(db, ticket_id)
-    ticket.title = normalized_title(title)
-    ticket.description = description.strip()
-    ticket.acceptance_criteria = acceptance_criteria.strip()
+    next_title = normalized_title(title)
+    next_description = description.strip()
+    next_criteria = acceptance_criteria.strip()
+    next_spec_ref = spec_ref.strip()
+    requirements_changed = (ticket.title, ticket.description, ticket.acceptance_criteria, ticket.spec_ref) != (
+        next_title, next_description, next_criteria, next_spec_ref
+    )
+    if requirements_changed:
+        cancel_active_runs(db, ticket, "Запуск отменён: требования тикета изменились. Запусти агента повторно.")
+    ticket.title = next_title
+    ticket.description = next_description
+    ticket.acceptance_criteria = next_criteria
     ticket.status = ticket_status.value
     ticket.priority = priority.value
-    ticket.spec_ref = spec_ref.strip()
-    ticket.branch_name = branch_name.strip()
-    ticket.pull_request_url = pull_request_url.strip()
+    ticket.spec_ref = next_spec_ref
+    ticket.branch_name = "" if requirements_changed else branch_name.strip()
+    ticket.pull_request_url = "" if requirements_changed else pull_request_url.strip()
     db.commit()
     return RedirectResponse(
         url=f"/tickets/{ticket.id}", status_code=status.HTTP_303_SEE_OTHER
@@ -228,6 +252,8 @@ def change_ticket_status(
     ticket_status: Annotated[TicketStatus, Form(alias="status")],
 ):
     ticket = get_ticket_or_404(db, ticket_id)
+    if ticket_status.value == "Backlog" and ticket.status != "Backlog":
+        cancel_active_runs(db, ticket, "Запуск отменён: тикет возвращён в бэклог.")
     ticket.status = ticket_status.value
     db.commit()
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
